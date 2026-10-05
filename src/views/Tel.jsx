@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, celValido, normalizarCel, store } from '../lib.js';
+import { buscarPorCel, celValido, normalizarCel, store } from '../lib.js';
 
 export default function Tel({ msg, onCliente, onNuevo }) {
   const qs = new URLSearchParams(location.search);
@@ -14,9 +14,9 @@ export default function Tel({ msg, onCliente, onNuevo }) {
     if (!celValido(cel)) return setErr('Revisá el número: ingresá código de área y número. Ej: 3815684987');
     setErr(''); setBusy(true);
     try {
-      const r = await api(`clientes?celular=ilike.*${cel.slice(-10)}*&select=*&limit=1`);
+      const c = await buscarPorCel(cel);
       store.set('pg_tel', cel);
-      r.length ? onCliente(r[0]) : onNuevo(cel);
+      c ? onCliente(c) : onNuevo(cel);
     } catch (e) { console.error(e); setBusy(false); setErr('No pudimos conectar. Intentá de nuevo.'); }
   }
   useEffect(() => { if (auto.current && qs.get('auto') !== '0') { auto.current = false; enviar(tel); } }, []);

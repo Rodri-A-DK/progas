@@ -2,7 +2,7 @@ export const C = window.CFG;
 const H = { apikey: C.SUPABASE_KEY, Authorization: 'Bearer ' + C.SUPABASE_KEY, 'Content-Type': 'application/json' };
 
 export async function api(path, opt = {}) {
-  const r = await fetch(C.SUPABASE_URL + '/rest/v1/' + path, { ...opt, headers: { ...H, ...(opt.headers || {}) } });
+  const r = await fetch(C.SUPABASE_URL + '/rest/v1/' + path, { cache: 'no-store', ...opt, headers: { ...H, ...(opt.headers || {}) } });
   if (!r.ok) throw new Error(await r.text());
   return r.status === 204 ? null : r.json();
 }
@@ -10,7 +10,7 @@ const rep = { Prefer: 'return=representation' };
 export const post = (p, body) => api(p, { method: 'POST', body: JSON.stringify(body), headers: rep });
 export const patch = (p, body) => api(p, { method: 'PATCH', body: JSON.stringify(body), headers: rep });
 export const rpc = (fn, body) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(body) });
-export const head = path => fetch(C.SUPABASE_URL + '/rest/v1/' + path, { method: 'HEAD', headers: { ...H, Prefer: 'count=exact' } });
+export const head = path => fetch(C.SUPABASE_URL + '/rest/v1/' + path, { method: 'HEAD', cache: 'no-store', headers: { ...H, Prefer: 'count=exact' } });
 
 export const store = {
   get: k => { try { return localStorage.getItem(k) } catch { return null } },
@@ -33,6 +33,13 @@ export function normalizarCel(n) {
     if (i !== undefined && d.substr(i, 2) === '15') d = d.slice(0, i) + d.slice(i + 2);
   }
   return d.length === 10 ? '549' + d : '';
+}
+// Busca al cliente por coincidencia EXACTA del celular (sin importar el formato guardado),
+// no por "contiene": así 5493816677869 no trae 54938166778694124.
+export async function buscarPorCel(cel) {
+  const n = cel.slice(-10);
+  const r = await api(`clientes?celular=in.(${['549' + n, '54' + n, n, '0' + n].join(',')})&select=*&limit=1`);
+  return r[0] || null;
 }
 export const celValido = c => /^549\d{10}$/.test(c);
 
@@ -103,8 +110,8 @@ export async function guardarCliente({ nuevo, datos, cliente, loc, f }) {
   const dir = { calle: f.calle.trim() || null, numero: f.numero.trim() || null, localidad: f.localidad.trim() || null, latitud: loc.lat, longitud: loc.lon, ...zl };
   const ref = f.ref.trim();
   if (nuevo) {
-    const ex = await api(`clientes?celular=ilike.*${datos.celular.slice(-10)}*&select=*&limit=1`);
-    if (ex.length) return { cliente: ex[0], existente: true };
+    const ex = await buscarPorCel(datos.celular);
+    if (ex) return { cliente: ex, existente: true };
     return { cliente: (await post('clientes', { ...datos, referencia: ref || null, tipo: 'Consumidor final', ...dir }))[0] };
   }
   if (ref) dir.referencia = ref;
