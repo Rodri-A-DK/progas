@@ -112,7 +112,7 @@ export default function Pedido({ cliente: inicial, onCambiar, onSalir }) {
           <div className="modal-c" onClick={e => e.stopPropagation()}>
             <h2>Nota para el repartidor</h2>
             <p className="sub" style={{ marginBottom: 10 }}>Opcional. Podés indicar el horario que preferís para la entrega, si tiene que tocar el timbre, etc.</p>
-            <textarea rows="3" maxLength="200" value={nota} onChange={e => setNota(e.target.value)} placeholder="Ej: tocar el timbre, entregar después de las 18 hs, dejar con el portero…" style={{ textAlign: 'left' }} />
+            <textarea rows="3" maxLength="200" value={nota} onChange={e => setNota(e.target.value)} placeholder="Ej: tocar el timbre, entregar después de las 10 hs, dejar con el portero…" style={{ textAlign: 'left' }} />
             <button className="btn" onClick={() => setPaso('aviso')}>{nota.trim() ? 'Continuar' : 'Continuar sin nota'}</button>
             <button className="link" style={{ marginTop: 10 }} onClick={() => setPaso(null)}>Volver</button>
           </div>
