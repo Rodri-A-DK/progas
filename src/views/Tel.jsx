@@ -15,7 +15,7 @@ export default function Tel({ msg, onCliente, onNuevo }) {
     setErr(''); setBusy(true);
     try {
       const c = await buscarPorCel(cel);
-      store.set('pg_tel', cel);
+      if (c) store.set('pg_tel', cel); // se recuerda solo el número de una sesión real (cuenta encontrada o recién registrada)
       c ? onCliente(c) : onNuevo(cel);
     } catch (e) { console.error(e); setBusy(false); setErr('No pudimos conectar. Intentá de nuevo.'); }
   }

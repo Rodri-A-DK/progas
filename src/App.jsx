@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { C, patch, resolverZonaLista, store } from './lib.js';
+import { C, patch, resolverZonaLista } from './lib.js';
 import Tel from './views/Tel.jsx';
 import Ubicacion from './views/Ubicacion.jsx';
 import Pedido from './views/Pedido.jsx';
@@ -36,7 +36,7 @@ export default function App() {
         {vista === 'cargando' && <p className="center"><span className="spin" /></p>}
         {vista === 'tel' && <Tel msg={msg} onCliente={entrar} onNuevo={cel => { setCelular(cel); setVista('loc'); }} />}
         {vista === 'loc' && <Ubicacion cliente={cliente} celular={celular} onCancel={cliente?.latitud ? () => setVista('pedido') : null} onGuardado={guardado} />}
-        {vista === 'pedido' && <Pedido cliente={cliente} onCambiar={() => setVista('loc')} onSalir={() => { store.del('pg_tel'); setCliente(null); setCelular(''); setMsg(''); setVista('tel'); }} />}
+        {vista === 'pedido' && <Pedido cliente={cliente} onCambiar={() => setVista('loc')} onSalir={() => { setCliente(null); setCelular(''); setMsg(''); setVista('tel'); }} />}
         {vista === 'sin' && <SinCobertura onVolver={() => setVista('loc')} />}
       </div>
     </div>
