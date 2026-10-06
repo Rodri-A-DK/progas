@@ -99,7 +99,8 @@ export async function resolverZonaLista(lat, lon) {
   const rows = await api(`clientes?id_zona=eq.${id_zona}&id_lista_precio=not.is.null&select=id_lista_precio&limit=1000`);
   const cnt = {}; rows.forEach(r => cnt[r.id_lista_precio] = (cnt[r.id_lista_precio] || 0) + 1);
   const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
-  return { id_zona, id_lista_precio: top ? +top[0] : null };
+  // Con zona detectada siempre se asigna una lista: la más usada de la zona o, si la zona aún no tiene clientes, la lista base (lista 1)
+  return { id_zona, id_lista_precio: top ? +top[0] : (C.LISTA_BASE || 6) };
 }
 
 // Guarda al cliente nuevo o actualiza la ubicación del existente.

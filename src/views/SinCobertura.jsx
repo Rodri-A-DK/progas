@@ -16,7 +16,11 @@ export default function SinCobertura({ onVolver }) {
         <p className="hint" style={{ marginBottom: 8 }}>Zonas con cobertura:</p>
         <ul style={{ paddingLeft: 18, fontSize: '.88rem', lineHeight: 1.5 }}>{zonas.map(z => <li key={z.nombre}>{z.nombre}</li>)}</ul>
       </>}
-      <button className="btn" onClick={onVolver}>Volver</button>
+      <a className="btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }} target="_blank" rel="noopener"
+        href={`https://wa.me/${C.WHATSAPP}?text=${encodeURIComponent('¡Hola! Quise hacer un pedido por la web pero mi dirección figura fuera de la zona de cobertura. ¿Pueden ayudarme?')}`}>
+        Escribinos por WhatsApp al {C.TELEFONO_CONTACTO}
+      </a>
+      <button className="link" style={{ marginTop: 12 }} onClick={onVolver}>Probar con otra dirección</button>
     </>
   );
 }
