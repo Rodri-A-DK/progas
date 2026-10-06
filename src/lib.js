@@ -38,7 +38,7 @@ export function normalizarCel(n) {
 // no por "contiene": así 5493816677869 no trae 54938166778694124.
 export async function buscarPorCel(cel) {
   const n = cel.slice(-10);
-  const r = await api(`clientes?celular=in.(${['549' + n, '54' + n, n, '0' + n].join(',')})&select=*&limit=1`);
+  const r = await api(`clientes?celular=in.(${['549' + n, '54' + n, n, '0' + n].join(',')})&select=*&order=activo.desc.nullslast,id_cliente&limit=1`);
   return r[0] || null;
 }
 export const celValido = c => /^549\d{10}$/.test(c);
@@ -106,13 +106,23 @@ export async function resolverZonaLista(lat, lon) {
 // Devuelve { sin: true } (sin cobertura) o { cliente, existente? }
 export async function guardarCliente({ nuevo, datos, cliente, loc, f }) {
   const zl = await resolverZonaLista(loc.lat, loc.lon);
-  if (!zl.id_zona || !zl.id_lista_precio) return { sin: true };
-  const dir = { calle: f.calle.trim() || null, numero: f.numero.trim() || null, localidad: f.localidad.trim() || null, latitud: loc.lat, longitud: loc.lon, ...zl };
+  // Un cliente existente conserva SU lista de precios: la lista por zona solo se usa si no tiene ninguna.
+  const listaPropia = !nuevo && cliente.id_lista_precio;
+  if (!listaPropia && (!zl.id_zona || !zl.id_lista_precio)) return { sin: true };
+  const dir = { calle: f.calle.trim() || null, numero: f.numero.trim() || null, localidad: f.localidad.trim() || null, latitud: loc.lat, longitud: loc.lon };
+  if (zl.id_zona) dir.id_zona = zl.id_zona;
+  if (!listaPropia) dir.id_lista_precio = zl.id_lista_precio;
   const ref = f.ref.trim();
   if (nuevo) {
     const ex = await buscarPorCel(datos.celular);
     if (ex) return { cliente: ex, existente: true };
-    return { cliente: (await post('clientes', { ...datos, referencia: ref || null, tipo: 'Consumidor final', ...dir }))[0] };
+    try {
+      return { cliente: (await post('clientes', { ...datos, referencia: ref || null, tipo: 'Consumidor final', ...dir }))[0] };
+    } catch (e) { // celular único: si otro registro se coló en el medio, se usa esa cuenta
+      const ya = /23505|duplicate/i.test(String(e.message)) && await buscarPorCel(datos.celular);
+      if (ya) return { cliente: ya, existente: true };
+      throw e;
+    }
   }
   if (ref) dir.referencia = ref;
   return { cliente: (await patch(`clientes?id_cliente=eq.${cliente.id_cliente}`, dir))[0] || { ...cliente, ...dir } };

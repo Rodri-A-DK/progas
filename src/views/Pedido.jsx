@@ -10,7 +10,11 @@ const ORDEN = [10, 15, 45];
 const kgDe = n => { const m = /(\d+)\s*kg/i.exec(n) || /(\d+)/.exec(n); return m ? +m[1] : null; };
 const rango = p => { const i = ORDEN.indexOf(p.kg); return i < 0 ? ORDEN.length : i; };
 
-export default function Pedido({ cliente, onCambiar, onSalir }) {
+const traerCliente = id => api(`clientes?id_cliente=eq.${id}&select=*&limit=1`).then(r => r[0] || null);
+
+export default function Pedido({ cliente: inicial, onCambiar, onSalir }) {
+  const [cli, setCli] = useState(null); // datos frescos del cliente (su lista de precios manda)
+  const cliente = cli || inicial;
   const [items, setItems] = useState(null);
   const [cant, setCant] = useState({});
   const [pago, setPago] = useState('Efectivo');
@@ -19,12 +23,17 @@ export default function Pedido({ cliente, onCambiar, onSalir }) {
   const [ok, setOk] = useState(null);
   const [aviso, setAviso] = useState(false);
 
+  useEffect(() => { traerCliente(inicial.id_cliente).then(c => setCli(c || inicial)).catch(() => setCli(inicial)); }, [inicial.id_cliente]);
+
   useEffect(() => {
+    if (!cli) return;
+    if (!cli.id_lista_precio) { setErr('Tu cuenta no tiene lista de precios asignada. Comunicate con nosotros al ' + C.TELEFONO_CONTACTO + '.'); setItems([]); return; }
+    setItems(null); setCant({});
     api(`productos?select=id_producto,nombre,url_imagen,productos_listas_precios!inner(precio)&productos_listas_precios.id_lista_precio=eq.${cliente.id_lista_precio}&order=nombre`)
       .then(r => setItems(r.map(p => { const kg = kgDe(p.nombre); return { id: p.id_producto, nombre: p.nombre, kg, img: IMG[kg] || p.url_imagen, precio: +p.productos_listas_precios[0].precio }; })
         .filter(p => p.precio > 0).sort((a, b) => rango(a) - rango(b) || a.nombre.localeCompare(b.nombre))))
       .catch(e => { console.error(e); setErr('No pudimos cargar los productos. Intentá de nuevo.'); setItems([]); });
-  }, [cliente.id_lista_precio]);
+  }, [cli && cli.id_lista_precio]);
 
   const sel = (items || []).filter(p => cant[p.id] > 0);
   const total = sel.reduce((s, p) => s + p.precio * cant[p.id], 0);
@@ -33,6 +42,12 @@ export default function Pedido({ cliente, onCambiar, onSalir }) {
   async function confirmar() {
     setAviso(false); setBusy(true); setErr('');
     try {
+      // Antes de registrar, se verifica que la lista con la que se vieron los precios siga siendo la de la cuenta
+      const fresco = await traerCliente(cliente.id_cliente);
+      if (!fresco || !fresco.id_lista_precio) throw new Error('cliente sin lista de precios');
+      if (fresco.id_lista_precio !== cliente.id_lista_precio) {
+        setCli(fresco); setBusy(false); setErr('Actualizamos los precios de tu cuenta. Revisá tu pedido y confirmá de nuevo.'); return;
+      }
       const hoy = new Date(), ini = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString();
       const r = await head(`pedidos?select=id_pedido&fecha_pedido=gte.${ini}`);
       const n = +((r.headers.get('content-range') || '').split('/')[1]) || 0;

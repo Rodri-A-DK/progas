@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { patch, resolverZonaLista, store } from './lib.js';
+import { C, patch, resolverZonaLista, store } from './lib.js';
 import Tel from './views/Tel.jsx';
 import Ubicacion from './views/Ubicacion.jsx';
 import Pedido from './views/Pedido.jsx';
@@ -12,6 +12,7 @@ export default function App() {
   const [msg, setMsg] = useState('');
 
   async function entrar(c) {
+    if (c.activo === false) { setMsg('Tu cuenta figura inactiva. Comunicate con nosotros al ' + C.TELEFONO_CONTACTO + '.'); return setVista('tel'); }
     setCliente(c);
     if (!c.latitud || !c.longitud) return setVista('loc');
     if (c.id_lista_precio) return setVista('pedido');
